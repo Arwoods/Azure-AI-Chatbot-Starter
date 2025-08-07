@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health AI Chatbot Trial</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f6f8fa; margin: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 32px; }
+        h1 { color: #2d7a46; }
+        #chatbox { height: 300px; overflow-y: auto; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; background: #f9f9f9; margin-bottom: 16px; }
+        .message { margin-bottom: 12px; }
+        .user { color: #0366d6; }
+        .bot { color: #6f42c1; }
+        #inputArea { display: flex; }
+        #userInput { flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #e1e4e8; }
+        #sendBtn { padding: 8px 16px; background: #2d7a46; color: #fff; border: none; border-radius: 4px; margin-left: 8px; cursor: pointer; }
+        #sendBtn:hover { background: #238636; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Health AI Chatbot (Trial)</h1>
+        <div id="chatbox"></div>
+        <div id="inputArea">
+            <input type="text" id="userInput" placeholder="Type your health question..." />
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
+    <script>
+        const chatbox = document.getElementById('chatbox');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message ' + sender;
+            msgDiv.textContent = sender === 'user' ? 'You: ' + text : 'Bot: ' + text;
+            chatbox.appendChild(msgDiv);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        function botReply(userText) {
+            // Simple placeholder logic for trial
+            let reply = "I'm an AI health assistant. Please consult a doctor for medical advice.";
+            if (userText.toLowerCase().includes('headache')) {
+                reply = "Headaches can have many causes. Are you experiencing any other symptoms?";
+            } else if (userText.toLowerCase().includes('fever')) {
+                reply = "A fever may indicate infection. Please monitor your temperature and stay hydrated.";
+            }
+            setTimeout(() => appendMessage('bot', reply), 600);
+        }
+
+        sendBtn.onclick = () => {
+            const text = userInput.value.trim();
+            if (text) {
+                appendMessage('user', text);
+                botReply(text);
+                userInput.value = '';
+            }
+        };
+        userInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') sendBtn.click();
+        });
+    </script>
+</body>
+</html>
