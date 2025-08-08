@@ -32,6 +32,9 @@
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
 
+        // Backend endpoint (do not expose API keys in frontend)
+        const CHAT_API = '/api/chat';
+
         function appendMessage(sender, text) {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message ' + sender;
@@ -40,15 +43,33 @@
             chatbox.scrollTop = chatbox.scrollHeight;
         }
 
-        function botReply(userText) {
-            // Simple placeholder logic for trial
-            let reply = "I'm an AI health assistant. Please consult a doctor for medical advice.";
-            if (userText.toLowerCase().includes('headache')) {
-                reply = "Headaches can have many causes. Are you experiencing any other symptoms?";
-            } else if (userText.toLowerCase().includes('fever')) {
-                reply = "A fever may indicate infection. Please monitor your temperature and stay hydrated.";
+        async function botReply(userText) {
+            appendMessage('bot', 'Thinking...');
+            try {
+                const response = await fetch(CHAT_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: 'You are a helpful health assistant. Always remind users to consult a doctor for medical advice.' },
+                            { role: 'user', content: userText }
+                        ]
+                    })
+                });
+                const data = await response.json();
+                // Remove 'Thinking...' message
+                chatbox.lastChild.remove();
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    appendMessage('bot', data.choices[0].message.content);
+                } else if (data.error) {
+                    appendMessage('bot', 'Error: ' + (data.error.message || 'Request failed'));
+                } else {
+                    appendMessage('bot', 'Sorry, I could not get a response.');
+                }
+            } catch (err) {
+                chatbox.lastChild.remove();
+                appendMessage('bot', 'Network error connecting to the chatbot backend.');
             }
-            setTimeout(() => appendMessage('bot', reply), 600);
         }
 
         sendBtn.onclick = () => {
