@@ -1,88 +1,359 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health AI Chatbot Trial</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f6f8fa; margin: 0; }
-        .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 32px; }
-        h1 { color: #2d7a46; }
-        #chatbox { height: 300px; overflow-y: auto; border: 1px solid #e1e4e8; border-radius: 6px; padding: 16px; background: #f9f9f9; margin-bottom: 16px; }
-        .message { margin-bottom: 12px; }
-        .user { color: #0366d6; }
-        .bot { color: #6f42c1; }
-        #inputArea { display: flex; }
-        #userInput { flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #e1e4e8; }
-        #sendBtn { padding: 8px 16px; background: #2d7a46; color: #fff; border: none; border-radius: 4px; margin-left: 8px; cursor: pointer; }
-        #sendBtn:hover { background: #238636; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Health AI Chatbot</title>
+  <style>
+    :root {
+      --bg: linear-gradient(135deg, #eef5ff 0%, #f6f8fa 100%);
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #0f172a;
+      --muted: #6b7280;
+      --brand: #2563eb;
+      --brand-2: #22c55e;
+      --bot: #f1f5f9;
+      --user: #e0f2fe;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .wrap {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(100%, 900px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      overflow: hidden;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    }
+    .logo {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, var(--brand), var(--brand-2));
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+    }
+    .title {
+      display: grid; gap: 4px;
+    }
+    .title h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    .title p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    #chatbox {
+      padding: 16px 20px 6px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fcfcfd;
+    }
+
+    .row { display: flex; gap: 10px; align-items: flex-start; }
+    .row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex: 0 0 32px;
+      background: #dbeafe; display: grid; place-items: center; color: #1e40af; font-weight: 700; font-size: 13px;
+      border: 1px solid var(--border);
+    }
+    .avatar.bot { background: #e2e8f0; color: #0f172a; }
+
+    .bubble {
+      max-width: 72%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      font-size: 14px; line-height: 1.45;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      white-space: pre-wrap; word-wrap: break-word;
+    }
+    .user .bubble { background: var(--user); }
+    .bot .bubble { background: var(--bot); }
+
+    .meta { margin-top: 4px; color: var(--muted); font-size: 11px; }
+
+    .typing { display: inline-flex; gap: 4px; align-items: center; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #9ca3af; opacity: 0.4; animation: blink 1.4s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%, 100% { opacity: 0.2 } 50% { opacity: 0.9 } }
+
+    .quick { display: flex; gap: 8px; padding: 8px 20px 0; flex-wrap: wrap; }
+    .chip {
+      padding: 8px 12px; border-radius: 999px; border: 1px solid var(--border);
+      background: #fff; font-size: 12px; color: #0f172a; cursor: pointer;
+    }
+    .chip:hover { background: #f3f4f6; }
+
+    .inputBar {
+      display: grid; grid-template-columns: 1fr auto; gap: 10px;
+      padding: 14px 16px; border-top: 1px solid var(--border);
+      background: #fff;
+      position: sticky; bottom: 0; z-index: 5;
+    }
+    #userInput {
+      width: 100%; resize: none; min-height: 44px; max-height: 120px;
+      padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border);
+      outline: none; font-size: 14px;
+    }
+    #sendBtn {
+      padding: 0 18px; border-radius: 12px; border: 1px solid var(--border);
+      background: linear-gradient(180deg, #2563eb, #1d4ed8);
+      color: white; font-weight: 600; cursor: pointer;
+    }
+    #sendBtn:disabled { filter: grayscale(0.3); opacity: 0.6; cursor: not-allowed; }
+
+    .tools { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 0 16px 16px; }
+    .drop {
+      border: 2px dashed #cbd5e1; border-radius: 12px; padding: 12px; color: var(--muted);
+      text-align: center; font-size: 13px; background: #fafafa;
+    }
+    .drop.dragover { background: #eef2ff; border-color: #6366f1; color: #374151; }
+    .uploadRow { display: flex; gap: 8px; align-items: center; }
+    .uploadRow button {
+      padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border);
+      background: #fff; cursor: pointer; font-weight: 600; font-size: 13px;
+    }
+    .note { padding: 0 20px 18px; font-size: 12px; color: var(--muted); }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Health AI Chatbot (Trial)</h1>
-        <div id="chatbox"></div>
-        <div id="inputArea">
-            <input type="text" id="userInput" placeholder="Type your health question..." />
-            <button id="sendBtn">Send</button>
+  <div class="wrap">
+    <div class="app">
+      <div class="header">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="title">
+          <h1>Health AI Chatbot</h1>
+          <p>Ask evidence-based questions. Not medical advice.</p>
         </div>
+      </div>
+
+      <div id="chatbox"></div>
+
+      <div class="quick">
+        <div class="chip" data-q="What are common causes of headaches?">Headache causes</div>
+        <div class="chip" data-q="How to reduce fever at home?">Reduce fever</div>
+        <div class="chip" data-q="What are signs of dehydration?">Dehydration signs</div>
+      </div>
+
+      <div class="inputBar">
+        <textarea id="userInput" placeholder="Type your health question..." rows="1"></textarea>
+        <button id="sendBtn">Send</button>
+      </div>
+
+      <div class="tools">
+        <div id="drop" class="drop">Drag & drop files here to add to knowledge base</div>
+        <div class="uploadRow">
+          <input type="file" id="fileInput" multiple />
+          <button id="uploadBtn">Upload</button>
+        </div>
+      </div>
+
+      <div class="note">Grounded by your documents via Azure AI Search. Files stored in Azure Blob. Always consult a healthcare professional.</div>
     </div>
-    <script>
-        const chatbox = document.getElementById('chatbox');
-        const userInput = document.getElementById('userInput');
-        const sendBtn = document.getElementById('sendBtn');
+  </div>
 
-        // Backend endpoint (do not expose API keys in frontend)
-        const CHAT_API = '/api/chat';
+  <script>
+    const chatbox = document.getElementById('chatbox');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileInput = document.getElementById('fileInput');
+    const drop = document.getElementById('drop');
 
-        function appendMessage(sender, text) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = 'message ' + sender;
-            msgDiv.textContent = sender === 'user' ? 'You: ' + text : 'Bot: ' + text;
-            chatbox.appendChild(msgDiv);
-            chatbox.scrollTop = chatbox.scrollHeight;
-        }
+    // Backend endpoint
+    const CHAT_API = '/api/chat';
 
-        async function botReply(userText) {
-            appendMessage('bot', 'Thinking...');
-            try {
-                const response = await fetch(CHAT_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: [
-                            { role: 'system', content: 'You are a helpful health assistant. Always remind users to consult a doctor for medical advice.' },
-                            { role: 'user', content: userText }
-                        ]
-                    })
-                });
-                const data = await response.json();
-                // Remove 'Thinking...' message
-                chatbox.lastChild.remove();
-                if (data.choices && data.choices[0] && data.choices[0].message) {
-                    appendMessage('bot', data.choices[0].message.content);
-                } else if (data.error) {
-                    appendMessage('bot', 'Error: ' + (data.error.message || 'Request failed'));
-                } else {
-                    appendMessage('bot', 'Sorry, I could not get a response.');
-                }
-            } catch (err) {
-                chatbox.lastChild.remove();
-                appendMessage('bot', 'Network error connecting to the chatbot backend.');
-            }
-        }
+    function now() {
+      return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
 
-        sendBtn.onclick = () => {
-            const text = userInput.value.trim();
-            if (text) {
-                appendMessage('user', text);
-                botReply(text);
-                userInput.value = '';
-            }
-        };
-        userInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') sendBtn.click();
+    function rowEl(kind) {
+      const r = document.createElement('div');
+      r.className = `row ${kind}`;
+      const avatar = document.createElement('div');
+      avatar.className = `avatar ${kind === 'user' ? '' : 'bot'}`;
+      avatar.textContent = kind === 'user' ? 'U' : 'AI';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = now();
+      const col = document.createElement('div');
+      col.appendChild(bubble);
+      col.appendChild(meta);
+      // Maintain consistent DOM order; CSS flips for user rows
+      r.appendChild(avatar);
+      r.appendChild(col);
+      return { r, bubble };
+    }
+
+    function appendMessage(kind, text) {
+      const { r, bubble } = rowEl(kind);
+      bubble.textContent = text;
+      chatbox.appendChild(r);
+      chatbox.scrollTop = chatbox.scrollHeight;
+      return r;
+    }
+
+    // typing indicator
+    let typingRow = null;
+    function showTyping() {
+      if (typingRow) return;
+      const { r, bubble } = rowEl('bot');
+      const t = document.createElement('div');
+      t.className = 'typing';
+      t.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+      bubble.appendChild(t);
+      chatbox.appendChild(r);
+      chatbox.scrollTop = chatbox.scrollHeight;
+      typingRow = r;
+    }
+    function hideTyping() {
+      if (typingRow) {
+        typingRow.remove();
+        typingRow = null;
+      }
+    }
+
+    async function botReply(userText) {
+      showTyping();
+      sendBtn.disabled = true;
+      try {
+        const response = await fetch(CHAT_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [
+              { role: 'system', content: 'You are a health advisor, base on user given data and analysis the data give out advices and take user data into nation early warning score to cal their score. answer in traditional Chinese. make it simple and important point. dont answer questions out of the health slope read the knowledge base' },
+              { role: 'user', content: userText }
+            ]
+          })
         });
-    </script>
+        const data = await response.json();
+        hideTyping();
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+          appendMessage('bot', data.choices[0].message.content);
+        } else if (data.error) {
+          appendMessage('bot', 'Error: ' + (data.error.message || 'Request failed'));
+        } else {
+          appendMessage('bot', 'Sorry, I could not get a response.');
+        }
+      } catch (err) {
+        hideTyping();
+        appendMessage('bot', 'Network error connecting to the chatbot backend.');
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+
+    // quick chips
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        appendMessage('user', chip.dataset.q);
+        botReply(chip.dataset.q);
+      });
+    });
+
+    // autosize textarea
+    function autosize() {
+      userInput.style.height = 'auto';
+      userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
+    }
+    userInput.addEventListener('input', autosize);
+
+    sendBtn.onclick = () => {
+      const text = userInput.value.trim();
+      if (text) {
+        appendMessage('user', text);
+        botReply(text);
+        userInput.value = '';
+        autosize();
+        userInput.focus();
+      }
+    };
+    userInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    // uploads
+    uploadBtn.onclick = async () => {
+      const files = fileInput.files;
+      if (!files || !files.length) {
+        alert('Please choose files to upload.');
+        return;
+      }
+      const form = new FormData();
+      for (const f of files) form.append('files', f);
+      try {
+        const resp = await fetch('/api/upload', { method: 'POST', body: form });
+        const data = await resp.json();
+        if (resp.ok) {
+          appendMessage('bot', `Uploaded ${data.uploaded} file(s) to knowledge base.`);
+        } else {
+          appendMessage('bot', `Upload failed: ${data.error?.message || 'Unknown error'}`);
+        }
+      } catch (e) {
+        appendMessage('bot', 'Upload failed due to network error.');
+      } finally {
+        fileInput.value = '';
+      }
+    };
+
+    // drag & drop
+    ;['dragenter','dragover'].forEach(evt => drop.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.add('dragover');
+    }));
+    ;['dragleave','drop'].forEach(evt => drop.addEventListener(evt, e => {
+      e.preventDefault(); e.stopPropagation();
+      drop.classList.remove('dragover');
+    }));
+    drop.addEventListener('drop', async (e) => {
+      const files = e.dataTransfer.files;
+      if (!files || !files.length) return;
+      const form = new FormData();
+      for (const f of files) form.append('files', f);
+      try {
+        const resp = await fetch('/api/upload', { method: 'POST', body: form });
+        const data = await resp.json();
+        if (resp.ok) {
+          appendMessage('bot', `Uploaded ${data.uploaded} file(s) to knowledge base.`);
+        } else {
+          appendMessage('bot', `Upload failed: ${data.error?.message || 'Unknown error'}`);
+        }
+      } catch (e2) {
+        appendMessage('bot', 'Upload failed due to network error.');
+      }
+    });
+  </script>
 </body>
 </html>
