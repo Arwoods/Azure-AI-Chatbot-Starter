@@ -1,5 +1,7 @@
 # 🤖 Azure AI Chatbot Starter (Express + RAG + Agents)
 
+![Chatbot UI Screenshot](asset/chatbot.png)
+
 A minimal Node.js/Express backend that powers a web chat using:
 
 - ☁️ Azure OpenAI (Chat Completions)
