@@ -140,6 +140,11 @@
       background: #fff; cursor: pointer; font-weight: 600; font-size: 13px;
     }
     .note { padding: 0 20px 18px; font-size: 12px; color: var(--muted); }
+
+    /* Added: mode selector styles */
+    .mode { margin-left:auto; display:flex; align-items:center; gap:6px; font-size:12px; }
+    .mode select { padding:4px 8px; border:1px solid var(--border); border-radius:8px; background:#fff; }
+    .mode label { font-weight:600; color:var(--muted); }
   </style>
 </head>
 <body>
@@ -150,6 +155,14 @@
         <div class="title">
           <h1>Health AI Chatbot</h1>
           <p>Ask evidence-based questions. Not medical advice.</p>
+        </div>
+        <!-- Added: Mode selector -->
+        <div class="mode">
+          <label for="modeSelect">Mode</label>
+          <select id="modeSelect">
+            <option value="chat" selected>Chat (RAG)</option>
+            <option value="agent">Agent</option>
+          </select>
         </div>
       </div>
 
@@ -185,175 +198,63 @@
     const uploadBtn = document.getElementById('uploadBtn');
     const fileInput = document.getElementById('fileInput');
     const drop = document.getElementById('drop');
+    const modeSelect = document.getElementById('modeSelect'); // added
 
-    // Backend endpoint
     const CHAT_API = '/api/chat';
+    const AGENT_API = '/api/agent'; // added
 
-    function now() {
-      return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
+    function now(){ return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }); }
 
-    function rowEl(kind) {
-      const r = document.createElement('div');
-      r.className = `row ${kind}`;
-      const avatar = document.createElement('div');
-      avatar.className = `avatar ${kind === 'user' ? '' : 'bot'}`;
-      avatar.textContent = kind === 'user' ? 'U' : 'AI';
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      meta.textContent = now();
-      const col = document.createElement('div');
-      col.appendChild(bubble);
-      col.appendChild(meta);
-      // Maintain consistent DOM order; CSS flips for user rows
-      r.appendChild(avatar);
-      r.appendChild(col);
-      return { r, bubble };
+    function rowEl(kind){ /* existing */
+      const r=document.createElement('div'); r.className=`row ${kind}`;
+      const avatar=document.createElement('div'); avatar.className=`avatar ${kind==='user'?'':'bot'}`; avatar.textContent=kind==='user'?'U':'AI';
+      const bubble=document.createElement('div'); bubble.className='bubble';
+      const meta=document.createElement('div'); meta.className='meta'; meta.textContent=now();
+      const col=document.createElement('div'); col.appendChild(bubble); col.appendChild(meta);
+      r.appendChild(avatar); r.appendChild(col); return { r, bubble };
     }
+    function appendMessage(kind,text){ const { r,bubble }=rowEl(kind); bubble.textContent=text; chatbox.appendChild(r); chatbox.scrollTop=chatbox.scrollHeight; return r; }
 
-    function appendMessage(kind, text) {
-      const { r, bubble } = rowEl(kind);
-      bubble.textContent = text;
-      chatbox.appendChild(r);
-      chatbox.scrollTop = chatbox.scrollHeight;
-      return r;
-    }
+    let typingRow=null;
+    function showTyping(){ if(typingRow) return; const { r,bubble }=rowEl('bot'); const t=document.createElement('div'); t.className='typing'; t.innerHTML='<span class="dot"></span><span class="dot"></span><span class="dot"></span>'; bubble.appendChild(t); chatbox.appendChild(r); chatbox.scrollTop=chatbox.scrollHeight; typingRow=r; }
+    function hideTyping(){ if(typingRow){ typingRow.remove(); typingRow=null; } }
 
-    // typing indicator
-    let typingRow = null;
-    function showTyping() {
-      if (typingRow) return;
-      const { r, bubble } = rowEl('bot');
-      const t = document.createElement('div');
-      t.className = 'typing';
-      t.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
-      bubble.appendChild(t);
-      chatbox.appendChild(r);
-      chatbox.scrollTop = chatbox.scrollHeight;
-      typingRow = r;
-    }
-    function hideTyping() {
-      if (typingRow) {
-        typingRow.remove();
-        typingRow = null;
-      }
-    }
-
-    async function botReply(userText) {
-      showTyping();
-      sendBtn.disabled = true;
+    async function botReply(userText){
+      const mode = modeSelect ? modeSelect.value : 'chat';
+      showTyping(); sendBtn.disabled=true;
       try {
-        const response = await fetch(CHAT_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              { role: 'system', content: 'You are a health advisor, base on user given data and analysis the data give out advices and take user data into nation early warning score to cal their score. answer in traditional Chinese. make it simple and important point. dont answer questions out of the health slope read the knowledge base' },
-              { role: 'user', content: userText }
-            ]
-          })
-        });
-        const data = await response.json();
-        hideTyping();
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-          appendMessage('bot', data.choices[0].message.content);
-        } else if (data.error) {
-          appendMessage('bot', 'Error: ' + (data.error.message || 'Request failed'));
+        if (mode === 'agent') {
+          // Agent call
+          const response = await fetch(AGENT_API, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ prompt: userText }) });
+          const data = await response.json(); hideTyping();
+            if(!response.ok){ appendMessage('bot', 'Agent error: '+(data.error?.message||response.status)); return; }
+            const msgs = data.messages || [];
+            const lastAssist = [...msgs].reverse().find(m => m.role !== 'user');
+            if (lastAssist) appendMessage('bot', `[Agent] ${lastAssist.text}`); else appendMessage('bot','Agent run completed (no text output).');
         } else {
-          appendMessage('bot', 'Sorry, I could not get a response.');
+          // Chat/RAG call
+          const response = await fetch(CHAT_API, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ messages:[ { role:'system', content:'You are a health advisor, base on user given data and analysis the data give out advices and take user data into nation early warning score to cal their score. answer in traditional Chinese. make it simple and important point. dont answer questions out of the health slope read the knowledge base' }, { role:'user', content:userText } ] }) });
+          const data = await response.json(); hideTyping();
+          if (data.choices?.[0]?.message) appendMessage('bot', data.choices[0].message.content); else if (data.error) appendMessage('bot','Error: '+(data.error.message||'Request failed')); else appendMessage('bot','Sorry, I could not get a response.');
         }
-      } catch (err) {
-        hideTyping();
-        appendMessage('bot', 'Network error connecting to the chatbot backend.');
-      } finally {
-        sendBtn.disabled = false;
-      }
+      } catch (e){ hideTyping(); appendMessage('bot', (mode==='agent'?'Agent':'Chat')+' network error.'); }
+      finally { sendBtn.disabled=false; }
     }
 
     // quick chips
-    document.querySelectorAll('.chip').forEach(chip => {
-      chip.addEventListener('click', () => {
-        appendMessage('user', chip.dataset.q);
-        botReply(chip.dataset.q);
-      });
-    });
+    document.querySelectorAll('.chip').forEach(chip=>{ chip.addEventListener('click',()=>{ const q=chip.dataset.q; appendMessage('user', q); botReply(q); }); });
 
-    // autosize textarea
-    function autosize() {
-      userInput.style.height = 'auto';
-      userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
-    }
+    function autosize(){ userInput.style.height='auto'; userInput.style.height=Math.min(userInput.scrollHeight,120)+'px'; }
     userInput.addEventListener('input', autosize);
+    sendBtn.onclick = ()=>{ const text=userInput.value.trim(); if(text){ appendMessage('user',text); botReply(text); userInput.value=''; autosize(); userInput.focus(); } };
+    userInput.addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendBtn.click(); } });
 
-    sendBtn.onclick = () => {
-      const text = userInput.value.trim();
-      if (text) {
-        appendMessage('user', text);
-        botReply(text);
-        userInput.value = '';
-        autosize();
-        userInput.focus();
-      }
-    };
-    userInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendBtn.click();
-      }
-    });
+    // uploads (unchanged)
+    uploadBtn.onclick = async () => { const files=fileInput.files; if(!files||!files.length){ alert('Please choose files to upload.'); return; } const form=new FormData(); for(const f of files) form.append('files', f); try { const resp=await fetch('/api/upload',{ method:'POST', body:form }); const data=await resp.json(); if(resp.ok) appendMessage('bot',`Uploaded ${data.uploaded} file(s) to knowledge base.`); else appendMessage('bot',`Upload failed: ${data.error?.message||'Unknown error'}`); } catch { appendMessage('bot','Upload failed due to network error.'); } finally { fileInput.value=''; } };
 
-    // uploads
-    uploadBtn.onclick = async () => {
-      const files = fileInput.files;
-      if (!files || !files.length) {
-        alert('Please choose files to upload.');
-        return;
-      }
-      const form = new FormData();
-      for (const f of files) form.append('files', f);
-      try {
-        const resp = await fetch('/api/upload', { method: 'POST', body: form });
-        const data = await resp.json();
-        if (resp.ok) {
-          appendMessage('bot', `Uploaded ${data.uploaded} file(s) to knowledge base.`);
-        } else {
-          appendMessage('bot', `Upload failed: ${data.error?.message || 'Unknown error'}`);
-        }
-      } catch (e) {
-        appendMessage('bot', 'Upload failed due to network error.');
-      } finally {
-        fileInput.value = '';
-      }
-    };
-
-    // drag & drop
-    ;['dragenter','dragover'].forEach(evt => drop.addEventListener(evt, e => {
-      e.preventDefault(); e.stopPropagation();
-      drop.classList.add('dragover');
-    }));
-    ;['dragleave','drop'].forEach(evt => drop.addEventListener(evt, e => {
-      e.preventDefault(); e.stopPropagation();
-      drop.classList.remove('dragover');
-    }));
-    drop.addEventListener('drop', async (e) => {
-      const files = e.dataTransfer.files;
-      if (!files || !files.length) return;
-      const form = new FormData();
-      for (const f of files) form.append('files', f);
-      try {
-        const resp = await fetch('/api/upload', { method: 'POST', body: form });
-        const data = await resp.json();
-        if (resp.ok) {
-          appendMessage('bot', `Uploaded ${data.uploaded} file(s) to knowledge base.`);
-        } else {
-          appendMessage('bot', `Upload failed: ${data.error?.message || 'Unknown error'}`);
-        }
-      } catch (e2) {
-        appendMessage('bot', 'Upload failed due to network error.');
-      }
-    });
+    ['dragenter','dragover'].forEach(evt=>drop.addEventListener(evt,e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); }));
+    ['dragleave','drop'].forEach(evt=>drop.addEventListener(evt,e=>{ e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); }));
+    drop.addEventListener('drop', async e=>{ const files=e.dataTransfer.files; if(!files||!files.length) return; const form=new FormData(); for(const f of files) form.append('files', f); try { const resp=await fetch('/api/upload',{ method:'POST', body:form }); const data=await resp.json(); if(resp.ok) appendMessage('bot',`Uploaded ${data.uploaded} file(s) to knowledge base.`); else appendMessage('bot',`Upload failed: ${data.error?.message||'Unknown error'}`); } catch { appendMessage('bot','Upload failed due to network error.'); } });
   </script>
 </body>
 </html>
