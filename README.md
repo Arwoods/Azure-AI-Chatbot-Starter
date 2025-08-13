@@ -167,6 +167,26 @@ Tips for best results:
 
 ---
 
+## 🧪 Test Cases (Screenshots)
+
+Visual states captured from the current UI implementation.
+
+| #   | Image                                | Title        | Description                                                         |
+| --- | ------------------------------------ | ------------ | ------------------------------------------------------------------- |
+| 1   | ![Main UI](asset/chatbot.png)        | Main Chat UI | Default landing view with header, quick chips, input & upload area. |
+| 2   | ![Test Case 1](asset/test-case1.png) | Test Case 1  | After taking data from devices                                      |
+| 3   | ![Test Case 2](asset/test-case2.png) | Test Case 2  | Random question                                                     |
+| 4   | ![Test Case 3](asset/test-case3.png) | Test Case 3  | Random question                                                     |
+| 5   | ![Test Case 4](asset/test-case4.png) | Test Case 4  | Base on data to generate monthly report                             |
+
+Update guidance:
+
+- Add new images into `asset/` and append a row.
+- Keep alt text meaningful for accessibility.
+- Replace placeholder descriptions with real context once defined.
+
+---
+
 ## 🛠️ Development Notes
 
 - Static files are served from the project root (so `index.html` loads at `/`).
