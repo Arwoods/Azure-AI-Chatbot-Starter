@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Trial for chatbot",
   "type": "module",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
   },
   "keywords": [],
   "author": "",
